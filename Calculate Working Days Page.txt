@@ -1,0 +1,136 @@
+OBJECT Page 50002 Working Days
+{
+  OBJECT-PROPERTIES
+  {
+    Date=11/23/20;
+    Time=[ 1:16:37 AM];
+    Modified=Yes;
+    Version List=#bcopendiscussion;
+  }
+  PROPERTIES
+  {
+    ActionList=ACTIONS
+    {
+      { 1240060008;  ;ActionContainer;
+                      CaptionML=ENU=Processing;
+                      ActionContainerType=ActionItems }
+      { 1240060009;1 ;ActionGroup;
+                      CaptionML=ENU=Action }
+      { 1240060010;2 ;Action    ;
+                      Name=CountWorkingDays;
+                      CaptionML=ENU=Count Working Days;
+                      Promoted=Yes;
+                      PromotedIsBig=Yes;
+                      Image=Calculate;
+                      PromotedCategory=Process;
+                      OnAction=BEGIN
+                                 CalculateWorkingDays;
+                               END;
+                                }
+    }
+  }
+  CONTROLS
+  {
+    { 1240060000;;Container;
+                Name=Content;
+                ContainerType=ContentArea }
+
+    { 1240060001;1;Group  ;
+                Name=Input;
+                CaptionML=ENU=Input;
+                GroupType=Group }
+
+    { 1240060002;2;Field  ;
+                Name=StartDate;
+                CaptionML=ENU=Start Date;
+                SourceExpr=StartDate }
+
+    { 1240060003;2;Field  ;
+                Name=EndDate;
+                CaptionML=ENU=End Date;
+                SourceExpr=EndDate;
+                OnValidate=BEGIN
+                             IF EndDate < StartDate THEN
+                               ERROR('End Date Should be Greater Than Start Date!');
+                           END;
+                            }
+
+    { 1240060004;1;Group  ;
+                Name=Results;
+                CaptionML=ENU=Results;
+                Editable=FALSE;
+                GroupType=Group }
+
+    { 1240060005;2;Field  ;
+                Name=TotalDays;
+                CaptionML=ENU=Total Days;
+                SourceExpr=TotalDays }
+
+    { 1240060006;2;Field  ;
+                Name=WorkingDays;
+                CaptionML=ENU=Working Days;
+                SourceExpr=WorkingDays }
+
+    { 1240060007;2;Field  ;
+                Name=NonWorkingDays;
+                CaptionML=ENU=Non-Working Days;
+                SourceExpr=NonWorkingDays }
+
+  }
+  CODE
+  {
+    VAR
+      StartDate@1240060000 : Date;
+      EndDate@1240060001 : Date;
+      WorkingDays@1240060002 : Integer;
+      NonWorkingDays@1240060003 : Integer;
+      TotalDays@1240060004 : Integer;
+      CompanyInfo@1240060005 : Record 79;
+
+    [LineStart(0)]
+    LOCAL PROCEDURE CalculateWorkingDays@1240060004();
+    VAR
+      CalenderMgmt@1240060000 : Codeunit 7600;
+      CheckDate@1240060001 : Date;
+      NewDescription@1240060002 : Text[50];
+    BEGIN
+      ClearValues();
+      CheckMinimumRequired();
+
+      CompanyInfo.GET();
+
+      TotalDays := (EndDate - StartDate) + 1;
+      CheckDate := StartDate;
+
+      REPEAT
+        IF CalenderMgmt.CheckDateStatus(CompanyInfo."Base Calendar Code",CheckDate,NewDescription) THEN
+          NonWorkingDays += 1;
+        CheckDate := CALCDATE('1D', CheckDate);
+      UNTIL (CheckDate > EndDate);
+
+      WorkingDays := TotalDays - NonWorkingDays;
+    END;
+
+    [LineStart(17)]
+    LOCAL PROCEDURE CheckMinimumRequired@1240060005();
+    BEGIN
+      IF (StartDate = 0D) OR (EndDate = 0D) THEN
+          ERROR('Start Date and End Date is Mandatory.');
+
+      CompanyInfo.GET;
+      CompanyInfo.TESTFIELD("Base Calendar Code");
+    END;
+
+    [LineStart(24)]
+    LOCAL PROCEDURE ClearValues@1240060006();
+    BEGIN
+      CLEAR(WorkingDays);
+      CLEAR(TotalDays);
+      CLEAR(NonWorkingDays);
+    END;
+
+    BEGIN
+    END.
+  }
+}
+
